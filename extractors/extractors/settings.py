@@ -7,7 +7,7 @@
 #     https://docs.scrapy.org/en/latest/topics/downloader-middleware.html
 #     https://docs.scrapy.org/en/latest/topics/spider-middleware.html
 import sys
-sys.path.append('') 
+sys.path.append('E:/1107_Michael_Scrapping/websites-crawler') 
 import settings
 
 BOT_NAME = 'extractors'
@@ -40,8 +40,15 @@ ROBOTSTXT_OBEY = True
 #TELNETCONSOLE_ENABLED = False
 
 # Override the default request headers:
-# DEFAULT_REQUEST_HEADERS = {
-# }
+DEFAULT_REQUEST_HEADERS = {
+  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) '
+              'Chrome/71.0.3578.98 Safari/537.36',
+  'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+  'Accept-Language': 'en-US,en;q=0.5',
+  'Accept-Encoding': 'gzip',
+  'DNT': '1',  # Do Not Track Request Header
+  'Connection': 'close'
+}
 
 # Enable or disable spider middlewares
 # See https://docs.scrapy.org/en/latest/topics/spider-middleware.html
@@ -98,26 +105,33 @@ ITEM_PIPELINES = {
 REQUEST_FINGERPRINTER_IMPLEMENTATION = '2.7'
 TWISTED_REACTOR = 'twisted.internet.asyncioreactor.AsyncioSelectorReactor'
 
-# HEADERS = {
-        
-#     }
+HEADERS = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/105.0.0.0 '
+                      'Safari/537.36 OPR/91.0.4516.95',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.5',
+        'Accept-Encoding': 'gzip',
+        'Referer': 'https://www.google.com/',
+        'DNT': '1',  # Do Not Track Request Header
+        'Connection': 'close'
+    }
 
-SCRAPER_API_KEY = ""
+SCRAPER_API_KEY = "ef991d16e237a6680f215c650206cf8e"
 
-# PROXY = settings.get_proxy()
+PROXY = settings.get_proxy()
 # PROXY = f"http://scraperapi.country_code=us.device_type=desktop:{SCRAPER_API_KEY}@proxy-server.scraperapi.com:8001 "
 # PROXY = f"http://scraperapi.render=true.country_code=us:{SCRAPER_API_KEY}@proxy-server.scraperapi.com:8001 "
 
 APP_ID = 1
-DB_NAME = ""
-PRODUCT_COLLECTION = ""
-PRODUCT_CATEGORY_COLLECTION = ""
-PRODUCT_SELLER_COLLECTION = ""
-PRODUCT_PRICE_HISTORY_COLLECTION = ""
-APP_SETTING_COLLECTION = ""
+DB_NAME = "tasks_db"
+PRODUCT_COLLECTION = "products"
+PRODUCT_CATEGORY_COLLECTION = "productCategory"
+PRODUCT_SELLER_COLLECTION = "productSellers"
+PRODUCT_PRICE_HISTORY_COLLECTION = "productPriceHistory"
+APP_SETTING_COLLECTION = "appSettings"
 
-MONGODB_USER = ""
-MONGODB_PASSWORD = ""
-MONGODB_CLUSTER = ""
+MONGODB_USER = "david"
+MONGODB_PASSWORD = "YAFV68dBmBQhoNJs"
+MONGODB_CLUSTER = "uhrfxiy"
 
 MONGODB_URI = f"mongodb+srv://{MONGODB_USER}:{MONGODB_PASSWORD}@cluster0.{MONGODB_CLUSTER}.mongodb.net/test"

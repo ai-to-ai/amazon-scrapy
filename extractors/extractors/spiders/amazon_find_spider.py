@@ -11,7 +11,7 @@ from urllib.parse import urlencode
 from urllib.parse import urljoin
 
 class AmazonSpider(scrapy.Spider):
-    name = "amazon"
+    name = "Amazon"
 
     def start_requests(self):
 
@@ -111,24 +111,26 @@ class AmazonSpider(scrapy.Spider):
         # stockStatusDescSelector = '//div[@id="availability_feature_div"]/div/span/text()' 
         # stockStatusDesc = response.xpath(stockStatusDescSelector).extract_first(default="NA")
 
-        # if stockStatusDesc == "NA":
-        stockStatusDescSelector = '//div[@id="availability"]/span/text()'
+        stockStatusDescSelector = '//div[@id="availabilityInsideBuyBox_feature_div"]/div/div[@id="availability"]/span/text()'
         stockStatusDesc = response.xpath(stockStatusDescSelector).extract_first(default="NA")
-        # cannot find 0, available 1, temporarily out of stock 2, currently unavaiable 3,
-        stockStatusCode = 0
+        print(stockStatusDesc)
+        # out of stock 0, in stock 1, low stock 2
+        stockStatusCode = 1
         stockCount = 0
 
         if stockStatusDesc != "NA":
             if 'Currently unavailable' in stockStatusDesc or 'Temporarily out of stock' in stockStatusDesc:
-                stockStatusCode = 2
+                stockStatusCode = 0
             elif "left in stock - order soon" in stockStatusDesc:
-                stockStatusCode = 1
-                stockCount = re.search(r' Only (.*?) left in stock - order soon ', stockStatusDesc).group(1)
+                stockStatusCode = 2
+                match = re.search(r'Only (.*?) left in stock', stockStatusDesc)
+                if match:
+                    stockCount = match.group(1)
             
 
         Item["stockStatus"] = {
-                        "stockStatus":stockStatusCode,
-                        "stockCount": stockCount
+                        "stockStatus":int(stockStatusCode),
+                        "stockCount": int(stockCount)
                     }
 
         #userRating
@@ -142,12 +144,16 @@ class AmazonSpider(scrapy.Spider):
         userRatingStarSelector = '//span[@id="acrPopover"]/@title'
         userRatingStars = response.xpath(userRatingStarSelector).extract_first()
         if userRatingStars != None:
-            userRatingStars = re.search(r'(.*?) out of (.*?) stars', userRatingStars).group(1) + ":" + re.search(r'(.*?) out of (.*?) stars', userRatingStars).group(2)
+            match = re.search(r'(.*?) out of (.*?) stars', userRatingStars)
+            if match != None:
+                userRatingStars = match.group(1) + ':' + match.group(2)
         else : userRatingStars = "0:0"
         Item["userRating"] = {
             "ratingStars":userRatingStars,
-            "ratingCount": userRatingCount
+            "ratingCount": int(userRatingCount)
         }
+
+        
 
         print(len(response.text))
         yield Item

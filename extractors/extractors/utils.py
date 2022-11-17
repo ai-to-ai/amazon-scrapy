@@ -1,10 +1,11 @@
 
 def getCategoryName(name):
-    if name == "amazon":
+    name = name.title()
+    if name == "Amazon":
         return "amazonCategoryAddress"
-    if name == "bestbuy":
+    if name == "Bestbuy":
         return "bestbuyCategoryAddress"
-    if name == "costco":
+    if name == "Costco":
         return "costcoCategoryAddress"
-    if name == "newegg":
+    if name == "Newegg":
         return "neweggCategoryAddress"
