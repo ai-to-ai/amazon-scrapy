@@ -5,14 +5,7 @@
 
 import scrapy
 
-
-class ExtractorsItem(scrapy.Item):
-    # define the fields for your item here like:
-    # name = scrapy.Field()
-    pass
-
-
-class AmazonItem(scrapy.Item):
+class MarketItem(scrapy.Item):
     # define the fields for your item here like:
     productBrand = scrapy.Field()
     productDescription = scrapy.Field()
@@ -22,6 +15,7 @@ class AmazonItem(scrapy.Item):
     productTitle = scrapy.Field()
     stockStatus = scrapy.Field()
     userRating = scrapy.Field()
-    productStatus = scrapy.Field()
     productLocalId = scrapy.Field()
-    # price = scrapy.Field()
+    price = scrapy.Field()
+    oldPrice = scrapy.Field()
+

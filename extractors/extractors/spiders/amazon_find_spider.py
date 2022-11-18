@@ -3,8 +3,8 @@ from pymongo import MongoClient
 import re
 from scrapy.utils.project import get_project_settings
 
-from ..items import AmazonItem
-from ..utils import getCategoryName
+from ..items import MarketItem
+from ..utils import getCategoryName, AmazonSelectors as Selectors, getElement
 from dataclasses import asdict
 from itemadapter import ItemAdapter
 from urllib.parse import urlencode
@@ -13,63 +13,57 @@ from urllib.parse import urljoin
 class AmazonSpider(scrapy.Spider):
     name = "Amazon"
 
+    baseUrl = "https://www.amazon.com"
+
     def start_requests(self):
 
-        for url in self.categoryUrls:
-            yield scrapy.Request(url=url, callback=self.parse_category)
+        # request with  category url
+        yield scrapy.Request(url=self.categoryUrl, callback=self.parse_category)
 
     def parse_category(self, response):
 
-        baseUrl = "https://www.amazon.com"
-
         # check if the Captcha exists.
         if response.css('#captchacharacters').extract_first():
-            print("Captcha found ")
+            self.log("Captcha found")
 
         #get products from the category
-        products = response.xpath('//*[@data-asin]')
-        print(products)
+        products = getElement(Selectors["products"], response)
 
         for product in products:
-            asin = product.xpath('@data-asin').extract_first(default="NA")
+            asin = getElement(Selectors["asin"], product).extract_first(default="NA")
             if asin:
                 product_url = f"https://www.amazon.com/dp/{asin}"
                 yield scrapy.Request(url=product_url, callback=self.parse_product, meta={'asin': asin})
 
         #get next page url
-        next_page = response.xpath('//a[contains(@class,"s-pagination-next")]/@href').extract_first(default="NA")
-        if next_page:
-            next_url = urljoin(baseUrl,next_page)
-            print(next_url)
-            yield scrapy.Request(url=next_url, callback=self.parse_category)
+        nextPage = getElement(Selectors["nextPage"],response).extract_first(default="NA")
+        if nextPage:
+            nextUrl = urljoin(self.baseUrl,nextPage)
+            yield scrapy.Request(url=nextUrl, callback=self.parse_category)
 
-        # self.log(linkSelectors)
     def parse_product(self, response):
 
         if response.css('#captchacharacters').extract_first():
-            print("Captcha found ")
+            self.log("Captcha found ")
 
-        Item = AmazonItem()
+        Item = MarketItem()
 
         #Asin
         Item["productLocalId"] = response.meta['asin']
 
         #brand
-        # brandSelector = '//tr[contains(@class, "po-brand")]/td[2]/span/text()'
-        brandSelector = '//a[@id="bylineInfo"]/text()'
-        
-        # brandSelector = '//div[@id="productOverview_feature_div"]/div/table/tr[1]/td[2]/span/text()'
-        tempBrand = response.xpath(brandSelector).extract_first(default="NA")
+        tempBrand = getElement(Selectors["brand"], response).extract_first(default="NA")
+
         if tempBrand != None and "Visit the" in tempBrand:
             tempBrand = re.search(r'Visit the (.*?) Store', tempBrand).group(1)
         elif tempBrand != None and "Brand:" in tempBrand:
             tempBrand = tempBrand.replace('Brand: ', "")
         tempBrand = tempBrand.title()
+
         Item["productBrand"] = tempBrand
 
         #description
-        productDescriptionSelector = '//div[@id="feature-bullets"]/ul/li/span/text()'
-        productDescription = response.xpath(productDescriptionSelector).getall()
+        productDescription = getElement(Selectors["description"], response).getall()
 
         while '' in productDescription:
             productDescription.remove('')
@@ -81,40 +75,25 @@ class AmazonSpider(scrapy.Spider):
         Item["productDescription"] = "\n".join(productDescription)
 
         #sellername
-        sellerNameSelector = '//a[@id="sellerProfileTriggerId"]/text()'
-        sellerNameExceptionSelector = '//div[@tabular-attribute-name="Sold by"]/div[@class="tabular-buybox-text a-spacing-none"]/span/text()'
-        Item["sellerName"] = response.xpath(sellerNameSelector).extract_first(default="NA")
-        if Item["sellerName"] == "NA":
-            Item["sellerName"] = response.xpath(sellerNameExceptionSelector).extract_first(default="NA")
+        Item["sellerName"] = getElement(Selectors["sellerName"], response).extract_first(default="NA")
 
         #imagelinks
-        imageLinkSelector = "//script[contains(., 'ImageBlockATF')]/text()"
-        ScriptText = response.xpath(imageLinkSelector).extract_first(default="NA") 
+        ScriptText = getElement(Selectors["imageLink"],response).extract_first(default="NA") 
 
         tempList = []
         temp = re.findall(r'"large":"[^"]*"',ScriptText)
+
         for row in temp:
             row = row.replace('"large":"',"")
             row = row.rstrip('"')
             tempList.append(row)
 
         Item["imageLink"] = tempList
-        # Item["imageLink"] = re.search('"large":".*?"',response.text).groups()
-        #productlink
         Item["productLink"] = response.url
+        Item["productTitle"] = getElement(Selectors["productTitle"], response).extract_first(default="NA").strip()
 
-        #productTitle
-        productTitleSelector = '//span[@id="productTitle"]/text()' 
-        Item["productTitle"] = response.xpath(productTitleSelector).extract_first(default="NA").strip()
-
-        #stockstatus
-        # stockStatusDescSelector = '//div[@id="availability_feature_div"]/div/span/text()' 
-        # stockStatusDesc = response.xpath(stockStatusDescSelector).extract_first(default="NA")
-
-        stockStatusDescSelector = '//div[@id="availabilityInsideBuyBox_feature_div"]/div/div[@id="availability"]/span/text()'
-        stockStatusDesc = response.xpath(stockStatusDescSelector).extract_first(default="NA")
-        print(stockStatusDesc)
-        # out of stock 0, in stock 1, low stock 2
+        #StockStatus and StockCount: out of stock 0, in stock 1, low stock 2
+        stockStatusDesc = getElement(Selectors["stockStatusDesc"],response).extract_first(default="NA")
         stockStatusCode = 1
         stockCount = 0
 
@@ -127,34 +106,32 @@ class AmazonSpider(scrapy.Spider):
                 if match:
                     stockCount = match.group(1)
             
-
         Item["stockStatus"] = {
-                        "stockStatus":int(stockStatusCode),
-                        "stockCount": int(stockCount)
-                    }
+                                "stockStatus":int(stockStatusCode),
+                                "stockCount": int(stockCount)
+                            }
 
         #userRating
-        userRatingCountSelector = '//span[@id="acrCustomerReviewText"]/text()'
-        userRatingCount = response.xpath(userRatingCountSelector).extract_first()
+        userRatingCount = getElement(Selectors["userRatingCount"],response).extract_first()
         
         if userRatingCount is not None: 
             userRatingCount = re.sub('[^0-9]','', userRatingCount) 
         else: userRatingCount = 0 
 
-        userRatingStarSelector = '//span[@id="acrPopover"]/@title'
-        userRatingStars = response.xpath(userRatingStarSelector).extract_first()
+        userRatingStars = getElement(Selectors["userRatingStar"], response).extract_first()
         if userRatingStars != None:
             match = re.search(r'(.*?) out of (.*?) stars', userRatingStars)
             if match != None:
                 userRatingStars = match.group(1) + ':' + match.group(2)
         else : userRatingStars = "0:0"
+
         Item["userRating"] = {
             "ratingStars":userRatingStars,
             "ratingCount": int(userRatingCount)
         }
 
-        
+        #price
+        Item["price"] = getElement(Selectors["price"], response).extract_first()
+        Item["oldPrice"] = getElement(Selectors["oldPrice"],response).extract_first()
 
-        print(len(response.text))
         yield Item
-        print("================")
