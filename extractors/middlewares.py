@@ -10,7 +10,8 @@ from itemadapter import is_item, ItemAdapter
 
 from scrapy.utils.project import get_project_settings
 
-settings=get_project_settings()
+settings = get_project_settings()
+
 
 class ExtractorsSpiderMiddleware:
     # Not all methods need to be defined. If a method is not defined,

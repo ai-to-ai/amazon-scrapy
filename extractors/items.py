@@ -5,6 +5,7 @@
 
 import scrapy
 
+
 class MarketItem(scrapy.Item):
     # define the fields for your item here like:
     productBrand = scrapy.Field()
@@ -18,4 +19,5 @@ class MarketItem(scrapy.Item):
     productLocalId = scrapy.Field()
     price = scrapy.Field()
     oldPrice = scrapy.Field()
-
+    productProcessTime= scrapy.Field()
+    productProcessSize= scrapy.Field()
