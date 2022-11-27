@@ -1,0 +1,6 @@
+Flask==2.2.2
+itemadapter==0.7.0
+pymongo==4.3.2
+python-dotenv==0.21.0
+Scrapy==2.7.1
+Twisted==22.10.0

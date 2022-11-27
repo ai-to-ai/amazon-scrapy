@@ -32,13 +32,17 @@ class MongoDBPipeline:
         self.appSettings = self.db[settings.get('APP_SETTING_COL')]
 
         self.category = self.categoryCollection.find_one({"appId": settings.get('APP_ID')})
-        
-        #get proxy status
+
+        # get proxy status
         spider.meta = {}
-        seller = self.productSellersCollection.find_one({"sellerName":spider.name})
-        if seller and seller["useProxy"] ==  1:
-            spider.meta["proxy"] =  settings.get('PROXY')
-            
+        seller = self.productSellersCollection.find_one({"sellerName": spider.name})
+        if seller and seller["useProxy"] == 1:
+            spider.meta["proxy"] = settings.get('PROXY')
+
+        # get requestInterval
+        appSettings = self.appSettings.find_one({})
+        if appSettings:
+            spider.requestInterval = appSettings["requestInterval"]
 
         # get category url from db by appId.
         if self.category is not None:
@@ -47,17 +51,18 @@ class MongoDBPipeline:
             spider.categoryUrl = ""
 
         # get products list to find new product.
-        productLists = self.productCollection.find({"productCategoryId":self.category["_id"]})
+        productLists = self.productCollection.find({"productCategoryId": self.category["_id"]})
         spider.productLists = list(map(lambda product: product['productLocalId'], productLists))
 
     def close_spider(self, spider):
         self.client.close()
 
     def process_item(self, item, spider):
+        print('====Item processing======')
         if isinstance(item, MarketItem):
             product = ItemAdapter(item).asdict()
 
-            if product == "NA":
+            if product["price"] == "NA":
                 return item
 
             # define the data to save to database.
@@ -92,13 +97,14 @@ class MongoDBPipeline:
 
             try:
                 price["productPrice"] = float(sub(r'[^\d.]', '', product["price"]))
-            except:
+            except Exception as ex:
+                print(ex)
                 price["productPrice"] = float(format(0, '.2f'))
 
             price["productShippingFee"] = float(format(0, '.2f'))  # currently set to 0.
             productOldPrice = product["oldPrice"]
 
-            if productOldPrice is None:
+            if productOldPrice == "NA":
                 price["productPriceType"] = "Regular"
                 self.productPriceHistoryCollection.insert_one(price)
             else:

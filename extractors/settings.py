@@ -13,6 +13,7 @@
 # import config
 
 import os, sys
+
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from config import *
 
@@ -34,8 +35,8 @@ TWISTED_REACTOR = 'twisted.internet.asyncioreactor.AsyncioSelectorReactor'
 # Enable or disable downloader middlewares
 # See https://docs.scrapy.org/en/latest/topics/downloader-middleware.html
 # DOWNLOADER_MIDDLEWARES = {
-    # 'extractors.middlewares.CustomProxyMiddleware': 350,
-    # 'scrapy.downloadermiddlewares.httpproxy.HttpProxyMiddleware': 400,
+# 'extractors.middlewares.CustomProxyMiddleware': 350,
+# 'scrapy.downloadermiddlewares.httpproxy.HttpProxyMiddleware': 400,
 # }
 
 # Configure item pipelines
