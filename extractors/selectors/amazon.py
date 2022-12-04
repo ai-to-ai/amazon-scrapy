@@ -20,20 +20,51 @@ selectors = {
     "userRatingCount": ['//span[@id="acrCustomerReviewText"]/text()'],
     "userRatingStar": ['//span[@id="acrPopover"]/@title'],
     "price": [
+        '//div[@id="centerCol"]/div[@id="apex_desktop"]/div/div/div[@id="corePrice_desktop"]/div/table/tr/td/span[contains(@class,"a-price") and not(contains(@data-a-strike,"true"))]/span[1]/text()',
+        '//*[@id="corePriceDisplay_desktop_feature_div"]/div[1]/span/span[1]/text()',
+        '//span[contains(@class, "priceToPay")]/span[1]/text()',
+        '//*[@id="snsDetailPagePrice"]/span[@id="sns-base-price"]/text()',
+        '//*[@id="priceblock_ourprice"]/text()',
+        '//*[@id="corePrice_desktop"]/div/table/tr[2]/td[2]/span[1]/span[1]/text()'
+    ],
+    "oldPrice": [
+        '//div[@id="centerCol"]/div[@id="apex_desktop"]/div/div/div[@id="corePrice_desktop"]/div/table/tr/td/span[contains(@class,"a-price") and @data-a-strike="true"]/span[1]/text()',
+        '//*[@id="corePrice_desktop"]/div/table/tr[1]/td[2]/span[@data-a-strike="true"]/span[1]/text()'
+
+    ],
+    "discountType":[
+        '//*[@id="savingsPercentage"]/text()',
+        '//*[@id="corePrice_desktop"]/div/table/tr[3]/td[2]/span[1]/text()',
+
+    ],
+    "variants": [
+        '//li[@data-defaultasin]/@data-dp-url',
+        '//option[@class="dropdownAvailable"]/@value'
+    ],
+    "variantName":[
+        '//div[contains(@class,"twisterTextDiv")]/p/text()',
+        '/@data-a-html-content'
+    ],
+    'variantPrice':[
+        '//p[contains(@class,"twisterSwatchPrice")]/text()'
+    ],
+    'variantGroups':[
+        '//form[@id="twister"]/div[contains(@id,"variation_")]'
+    ]
+}
+
+        #price data
         # '//span[contains(@class,"a-price")]/span[1]/text()', '//div[@id="centerCol"]/div[
         # @id="apex_desktop"]/div/div/div[@id="corePrice_desktop"]/div/table/tr/td/span',
         # '//div[@id="centerCol"]/div[@id="apex_desktop"]/div/div/div[@id="corePrice_desktop"]/div/table/tr/td/span[
         # contains(@class,"a-price") and not(contains(@data-a-strike,"true"))]',
-        '//div[@id="centerCol"]/div[@id="apex_desktop"]/div/div/div[@id="corePrice_desktop"]/div/table/tr/td/span['
-        'contains(@class,"a-price") and not(contains(@data-a-strike,"true"))]/span[1]/text()',
-        '//div[@id="centerCol"]/div/div[@id="corePriceDisplay_desktop_feature_div"]/div[1]/span/span/text()'
-    ],
-    "oldPrice": [
-        '//div[@id="centerCol"]/div[@id="apex_desktop"]/div/div/div[@id="corePrice_desktop"]/div/table/tr/td/span['
-        'contains(@class,"a-price") and @data-a-strike="true"]/span[1]/text()',
+
+        # '//span[contains(@class, "apexPriceToPay")]/span[1]/text()',
+        # '//div[@id="centerCol"]/div[@id="apex_desktop"]/div/div/div[@id="corePrice_desktop"]/div/table/tr/td/span[contains(@class,"a-price") and not(contains(@data-a-strike,"true"))]/span[1]/text()',
+        # '//div[@id="centerCol"]/div/div[@id="corePriceDisplay_desktop_feature_div"]/div[1]/span/span/text()',
+        # '//*[@id="snsDetailPagePrice"]/span[@id="sns-base-price"]/text()',
+        # '//*[@id="corePrice_desktop"]/div/table/tr[2]/td[2]/span[1]/span[1]/text()',
+        # '//*[@id="corePriceDisplay_desktop_feature_div"]/div[1]/span[contains(@class,"priceToPay")]/span[1]/text()'
+
+        # old price data
         # '//span[contains(@class,"a-price") and @data-a-strike="true"]/span[1]/text()',
-    ],
-    "variants": [
-        '//li[@data-defaultasin]/@data-defaultasin'
-    ]
-}

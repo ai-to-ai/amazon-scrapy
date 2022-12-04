@@ -21,3 +21,5 @@ class MarketItem(scrapy.Item):
     oldPrice = scrapy.Field()
     productProcessTime= scrapy.Field()
     productProcessSize= scrapy.Field()
+    variant= scrapy.Field()
+    discountType= scrapy.Field()

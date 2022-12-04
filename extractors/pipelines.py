@@ -79,6 +79,10 @@ class MongoDBPipeline:
             productToSave["productLocalId"] = product["productLocalId"]
             productToSave["productProcessTime"] = product["productProcessTime"]
             productToSave["productProcessSize"] = product["productProcessSize"]
+            try:
+                productToSave["productVariants"] = product["variant"]
+            except Exception as error:
+                print("no variant")
 
             # add necessary data related to collections.
             productToSave["lastUpdate"] = datetime.timestamp(datetime.now())
@@ -112,13 +116,21 @@ class MongoDBPipeline:
                 try:
                     oldPrice = float(sub(r'[^\d.]', '', product["oldPrice"]))
                     currentPrice = float(sub(r'[^\d.]', '', product["price"]))
-                    discountValue = 100 - currentPrice * 100 / oldPrice or 0
-                    price["productDiscountValue"] = float(f'{discountValue:.2f}')
+                    if product["discountType"] == "Percent":
+                        discountValue = 100 - currentPrice * 100 / oldPrice or 0
+                    elif product["discountType"] == "Fixed":
+                        discountValue = oldPrice - currentPrice
+
+                    discountValue = int(discountValue)
+                    price["productDiscount"] = {
+                        "productDiscountValue" : discountValue,
+                        "productDiscountType" : product["discountType"]
+                    }
                     price["productOldPrice"] = oldPrice
                 except Exception as inst:
                     print(inst)
                     price["productOldPrice"] = float(format(0, '.2f'))
-                    price["productDiscountValue"] = float(format(0, '.2f'))
+                    price["productDiscount"] = {}
 
                 self.productPriceHistoryCollection.insert_one(price)
         return item
