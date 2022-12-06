@@ -37,10 +37,7 @@ selectors = {
         '//*[@id="corePrice_desktop"]/div/table/tr[3]/td[2]/span[1]/text()',
 
     ],
-    "variants": [
-        '//li[@data-defaultasin]/@data-dp-url',
-        '//option[@class="dropdownAvailable"]/@value'
-    ],
+    "variants": ["//script[contains(., 'ImageBlockBTF')]/text()"],
     "variantName":[
         '//div[contains(@class,"twisterTextDiv")]/p/text()',
         '/@data-a-html-content'

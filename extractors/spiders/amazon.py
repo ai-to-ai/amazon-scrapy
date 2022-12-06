@@ -39,10 +39,10 @@ class AmazonSpider(scrapy.Spider):
 
         """
         test_urls = [
-            'https://www.amazon.com/DreamController-Original-Controller-Compatible-Wireless/dp/B09V37CLLR?th=1',
-            'https://www.amazon.com/Razer-Universal-Quick-Charging-Xbox-S/dp/B09DHSJ4SZ',
+            # 'https://www.amazon.com/DreamController-Original-Controller-Compatible-Wireless/dp/B09V37CLLR?th=1',
+            # 'https://www.amazon.com/Razer-Universal-Quick-Charging-Xbox-S/dp/B09DHSJ4SZ',
             'https://www.amazon.com/CableMod-CM-PCSR-FKIT-NKW-R-Cable-Kit-White/dp/B089KPWW3J?th=1',
-            'https://www.amazon.com/Azzaro-Most-Wanted-Parfum-Fragrance/dp/B09VN2FCDF/?_encoding=UTF8&pd_rd_w=jVQKE&content-id=amzn1.sym.aa5d5fb8-9ab9-46ea-8709-d60f551faa80&pf_rd_p=aa5d5fb8-9ab9-46ea-8709-d60f551faa80&pf_rd_r=F2CTCZ402NYW0D04S2DQ&pd_rd_wg=7duSD&pd_rd_r=f5ad392d-c089-448e-afc3-213f9cefcfc3&ref_=pd_gw_deals_gi'
+            # 'https://www.amazon.com/Azzaro-Most-Wanted-Parfum-Fragrance/dp/B09VN2FCDF/?_encoding=UTF8&pd_rd_w=jVQKE&content-id=amzn1.sym.aa5d5fb8-9ab9-46ea-8709-d60f551faa80&pf_rd_p=aa5d5fb8-9ab9-46ea-8709-d60f551faa80&pf_rd_r=F2CTCZ402NYW0D04S2DQ&pd_rd_wg=7duSD&pd_rd_r=f5ad392d-c089-448e-afc3-213f9cefcfc3&ref_=pd_gw_deals_gi'
 
         ]
         if self.env == "dev":
@@ -239,7 +239,15 @@ class AmazonSpider(scrapy.Spider):
 
         variantGroups = getElement(selectors["variantGroups"], response)
 
-        variants = getElement(selectors["variants"], response).getall()
+        variantText = getElement(selectors["variants"], response).get()
+
+        variants = []
+        temp_variants = re.findall(r'"asin":"[^"]*"', variantText)
+
+        for row in temp_variants:
+            row = row.replace('"asin":"', "")
+            row = row.rstrip('"')
+            variants.append(row)
 
         variantPrices = getElement(selectors["variantPrice"], response).getall()
 
@@ -269,18 +277,18 @@ class AmazonSpider(scrapy.Spider):
                     "variantId": variantId,
                     "variantName": variantName
                 }
-        for temp_variant in variants:
-            r = re.search(r'\/[A-Z0-9]{10}\/',temp_variant)
-            if r is not None:
-                variant = r.group(0)
-                variant = variant[1:-1]
-            else:
-                r = re.search(r',[A-Z0-9]{10}',temp_variant)
-                if r is not None:
-                    variant = r.group(0)
-                    variant = variant[1:]
-                else:
-                    variant = ""
+        for variant in variants:
+            # r = re.search(r'\/[A-Z0-9]{10}\/',temp_variant)
+            # if r is not None:
+            #     variant = r.group(0)
+            #     variant = variant[1:-1]
+            # else:
+            #     r = re.search(r',[A-Z0-9]{10}',temp_variant)
+            #     if r is not None:
+            #         variant = r.group(0)
+            #         variant = variant[1:]
+            #     else:
+            #         variant = ""
 
             if variant != "" and variant != response.meta['asin']:
                 if variant not in self.productLists:
