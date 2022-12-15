@@ -2,7 +2,7 @@ HOST = "127.0.0.1"
 PORT = 3000
 DEBUG = True
 
-SCRAPER_API_KEY = ""
+SCRAPER_API_KEY = "ef991d16e237a6680f215c650206cf8e"
 
 APP_ID = 1
 # database details where products, categories, etc. are stored
@@ -13,9 +13,9 @@ PRODUCT_SELLER_COL = "productSellers"
 PRODUCT_PRICE_HISTORY_COL = "productPriceHistory"
 APP_SETTING_COL = "appSettings"
 
-MONGODB_USER = ""
-MONGODB_PASSWORD =""
-MONGODB_CLUSTER = ""
+MONGODB_USER = "david"
+MONGODB_PASSWORD ="YAFV68dBmBQhoNJs"
+MONGODB_CLUSTER = "uhrfxiy"
 
 
 # refer to https://www.scraperapi.com/documentation/python/#getting-started to learn more about the ScraperAPI

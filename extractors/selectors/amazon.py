@@ -47,6 +47,9 @@ selectors = {
     ],
     'variantGroups':[
         '//form[@id="twister"]/div[contains(@id,"variation_")]'
+    ],
+    'variantGNames':[
+        '//*[@class="a-form-label"]/text()'
     ]
 }
 

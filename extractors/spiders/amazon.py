@@ -249,20 +249,33 @@ class AmazonSpider(scrapy.Spider):
             row = row.rstrip('"')
             variants.append(row)
 
+        variantGNames = getElement(selectors['variantGNames'], response).getall()
+        variantGNames = [re.sub(r'[^A-Za-z0-9]+','', variantGName) for variantGName in variantGNames ]
+        print(variantGNames)
+        variantName = {}
+
+        for variantGName in variantGNames:
+
+            variantNameSelectors = [
+                    f'//div[contains(@class,"a-row") and label[@class="a-form-label" and contains(.,"{variantGName}")]]/span[@class="selection"]/text()',
+                    f'//div[contains(@class,"a-row") and label[@class="a-form-label" and contains(.,"{variantGName}")]]/following-sibling::span//span[@class="a-dropdown-prompt"]/text()'
+
+            ]
+            variantName[variantGName] = getElement(variantNameSelectors, response).get()
+            if variantName[variantGName]:
+                variantName[variantGName] = variantName[variantGName].strip()
+        print(variantName)
         variantPrices = getElement(selectors["variantPrice"], response).getall()
 
         if len(variantPrices) <2 and len(variantGroups) < 2:
             variantId = "NA"
-            print('HERE?????')
-            print(len(variantPrices))
-            print(len(variantGroups))
 
         #variantId
         try:
             if response.meta["variantId"] != "NA":
                 Item["variant"] = {
                     "variantId": response.meta["variantId"],
-                    "variantName": response.meta["variantName"]
+                    "variantName": variantName
                 }
         except Exception as inst:
             if len(variantPrices) > 1:
@@ -272,11 +285,15 @@ class AmazonSpider(scrapy.Spider):
                     "variantName": variantName
                 }
             if len(variantGroups) > 1:
-                variantName = "Many Variants"
+                # variantName = "Many Variants"
                 Item["variant"] = {
                     "variantId": variantId,
                     "variantName": variantName
                 }
+        # Item['variant'] = {
+        #     'variantId': variantId,
+        #     "variantName": variantName
+        # }
         for variant in variants:
             # r = re.search(r'\/[A-Z0-9]{10}\/',temp_variant)
             # if r is not None:
