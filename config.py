@@ -2,7 +2,7 @@ HOST = "127.0.0.1"
 PORT = 3000
 DEBUG = True
 
-SCRAPER_API_KEY = "ef991d16e237a6680f215c650206cf8e"
+SCRAPER_API_KEY = ""
 
 APP_ID = 1
 # database details where products, categories, etc. are stored

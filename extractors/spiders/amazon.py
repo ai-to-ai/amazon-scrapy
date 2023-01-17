@@ -1,3 +1,5 @@
+import time
+
 import scrapy
 from pymongo import MongoClient
 import re
@@ -23,15 +25,26 @@ settings = get_project_settings()
 class AmazonSpider(scrapy.Spider):
     name = "Amazon"
 
-    baseUrl = "https://www.amazon.com"
 
+    baseUrl = "https://www.amazon.com"
     env = "dev"
     # env = "prod"
+
+    count = 0
 
     # custom_settings = {
     #      'CONCURRENT_REQUESTS':30,
     #      'DOWNLOAD_DELAY': requestInterval
     # }
+
+    def is_product_exist(self, productASIN):
+        productASINStatus = self.productCollection.find_one({"productLocalId": productASIN})
+        if productASINStatus is None:
+            # Product is not existed in db
+            return False
+        else:
+            # Product already existed in db
+            return True
 
     def start_requests(self):
         """
@@ -39,96 +52,126 @@ class AmazonSpider(scrapy.Spider):
 
         """
         test_urls = [
-            # 'https://www.amazon.com/DreamController-Original-Controller-Compatible-Wireless/dp/B09V37CLLR?th=1',
-            # 'https://www.amazon.com/Razer-Universal-Quick-Charging-Xbox-S/dp/B09DHSJ4SZ',
-            'https://www.amazon.com/CableMod-CM-PCSR-FKIT-NKW-R-Cable-Kit-White/dp/B089KPWW3J?th=1',
-            # 'https://www.amazon.com/Azzaro-Most-Wanted-Parfum-Fragrance/dp/B09VN2FCDF/?_encoding=UTF8&pd_rd_w=jVQKE&content-id=amzn1.sym.aa5d5fb8-9ab9-46ea-8709-d60f551faa80&pf_rd_p=aa5d5fb8-9ab9-46ea-8709-d60f551faa80&pf_rd_r=F2CTCZ402NYW0D04S2DQ&pd_rd_wg=7duSD&pd_rd_r=f5ad392d-c089-448e-afc3-213f9cefcfc3&ref_=pd_gw_deals_gi'
-
+            # 'https://www.amazon.com/DreamController-Original-Controller-Compatible-Wireless/dp/B09V37CLLR', # with collapsible variant group(s)
+            # 'https://www.amazon.com/Razer-Universal-Quick-Charging-Xbox-S/dp/B09DHSJ4SZ', # with variant group(s)
+            # 'https://www.amazon.com/CableMod-CM-PCSR-FKIT-NKW-R-Cable-Kit-White/dp/B089KPWW3J', # with collapsible variant group(s)
+            # 'https://www.amazon.com/Azzaro-Most-Wanted-Parfum-Fragrance/dp/B09VN2FCDF', # with variant(s) without variant group(s)
+            # 'https://www.amazon.com/Bose-Soundbar-Built-Bluetooth-connectivity/dp/B094YN85V2', # with variant(s) without variant group(s)
+            # 'https://www.amazon.com/Akai-Professional-MPC-One-Controller/dp/B0842VQ2JY', # with variant(s) without variant group(s)
+            # 'https://www.amazon.com/Logitech-Handheld-Long-Battery-Touchscreen-Lightweight-Tablet/dp/B09T9FHZLH', # without variant(s)
+            # 'https://www.amazon.com/Valve-Handheld-Console-No-Operating-System/dp/B0BBQRYN9M', # without variant(s)
+            # 'https://www.amazon.com/gp/product/B0BJ34P723/', # with variants without variant(s) group
+            # 'https://www.amazon.com/Charger-Anker-Adapter-Supported-Foldable/dp/B08T5QVTKW' # without variant(s)
+            # 'https://www.amazon.com/Purifiers-AMEIFU-Aromatherapy-Allergies-California/dp/B09XJW5VPY', # with variants, coupon-based product
+            'https://www.amazon.com/AIRYOMI-Professional-Brushless-Diffuser-0-83Pound/dp/B0B49GXJ3B' # without variant, with coupon
+            # 'https://www.amazon.com/SHRATE-Professional-Negative-FastDrying-Temperature/dp/B08621GBMF', # with variants, with discount, with coupon, with price details
+            # 'https://www.amazon.com/Dyson-Hair-Dryer-Limited-Gift/dp/B0BQWVYH6D', # with variants, with discount, without coupon
+            # 'https://www.amazon.com/Azzaro-Wanted-1-7-Toilette-Spray/dp/B078P7YZ3L', # with variants, with price details
+            # 'https://www.amazon.com/Loris-Azzaro-Chrome-Toilette-Spray/dp/9790781261' # with variant groups, with price details
         ]
         if self.env == "dev":
+            print('######### App running in developer mode #########')
             for url in test_urls:
-                # self.meta["asin"] = "B08WC2SMSN"
-                asin = re.search(r'\/[0-9A-Z]{10}',url).group(0)
+                asin = re.search(r'/[0-9A-Z]{10}', url).group(0)
                 asin = asin[1:]
                 self.meta['asin'] = asin
-                self.productLists = []
-                # request with  category url
-                yield scrapy.Request(url=cleanUrl(url), callback=self.parse_product,
-                                     headers=getRandomUAgents(settings.get('UAGENTS'), settings.get('HEADERS')), meta=self.meta, cb_kwargs={"isProduct":True})
+                print('Product URL ASIN Is: ', asin)
+                # self.productLists = []
+                # request with category url
+                if self.is_product_exist(asin) is False:
+                    print('ASIN Not Found In DB')
+                    yield scrapy.Request(url=cleanUrl(url), callback=self.parse_product, headers=getRandomUAgents(settings.get('UAGENTS'), settings.get('HEADERS')), meta=self.meta, cb_kwargs={"isProduct":True})
+                else:
+                    print('This Product Already Is In DB')
         else:
             yield scrapy.Request(url=cleanUrl(self.categoryUrl), callback=self.parse_category, headers = getRandomUAgents(
             settings.get('UAGENTS'), settings.get('HEADERS')), meta=self.meta)
 
     def parse_category(self, response):
-        '''
-            This method is to extract product pages from given category
+        """
+            This method is to extract product pages URL from given category
 
-        '''
-
-        # check if the Captcha exists.
+        """
+        print('######################## Check If The Recaptcha Exists ########################')
         if response.css('#captchacharacters').extract_first():
-            self.log("Captcha found")
+            # self.log("Captcha found")
+            print('Captcha Found')
+        else:
+            print('Captcha Not Found')
 
-        # get products from the category
+        print('######################## Extract Products From The Category ########################')
         products = getElement(selectors["products"], response).getall()
+        print('Total Products Detected From Current Page is:', len(products))
 
         for productLink in products:
 
-           # get asin
-            if re.search(r'dp\/(.*)\/', productLink):
-                asin = re.search(r'dp\/(.*)\/', productLink).group(1)
+            print('######################## Get ASIN Of Current Product ########################')
+            if re.search(r'dp/(.*)/', productLink):
+                asin = re.search(r'dp/(.*)/', productLink).group(1)
+            # elif re.search(r'gp/product/(.*)', productLink):
+            #     asin = re.search(r'gp/product/(.*)', productLink).group(1)
             else:
                 asin = ""
+            print('ASIN Of Current Product Is:', asin)
 
-            # get current link
+            print('######################## Get Product Raw Link ########################')
             productUrl = urljoin(self.baseUrl, productLink)
+            print('Product Raw URL Is:', productUrl)
 
-            # get rid of unnecessary query params
-            if re.search(r'https:\/\/[^\/]+\/[^\/]+\/dp\/[^\/]+',productUrl):
-                realProductlink = re.search(r'https:\/\/[^\/]+\/[^\/]+\/dp\/[^\/]+',productUrl).group(0)
+            print('######################## Get Rid Of Unnecessary Query Params From Product Raw Link ########################')
+            if re.search(r'https://[^/]+/[^/]+/dp/[^/]+', productUrl):
+                realProductlink = re.search(r'https://[^/]+/[^/]+/dp/[^/]+', productUrl).group(0)
+            # elif re.search(r'https://[^/]+/gp/product/[^/]+', productUrl):
+            #     realProductlink = re.search(r'https://[^/]+/gp/product/[^/]+', productUrl).group(0)
             else:
                 realProductlink = ""
+            print('Cleaned Product Link Is:', realProductlink)
 
-            # get product page
+            print('######################## Go To Product Page ########################')
             if asin: 
-                if asin not in self.productLists:
-                    self.productLists.append(asin) 
+                if self.is_product_exist(asin) is False:
                     customMeta = copy.deepcopy(self.meta) 
                     customMeta['asin'] = asin 
                     yield scrapy.Request(url=realProductlink, callback=self.parse_product,headers = getRandomUAgents(settings.get('UAGENTS'), settings.get('HEADERS')),meta=customMeta, cb_kwargs = {"isProduct":True})
 
-        # get next page url 
-        nextPage = getElement(selectors["nextPage"], response).extract_first(default="NA") 
-        if nextPage: 
+        print('######################## Get Next Page URL ########################')
+        nextPage = getElement(selectors["nextPage"], response).extract_first(default="NA")
+        if nextPage:
             nextUrl = urljoin(self.baseUrl, nextPage)
+            print('Next Page URL Is:', cleanUrl(nextUrl))
             yield scrapy.Request(url=cleanUrl(nextUrl), callback=self.parse_category, headers = getRandomUAgents(settings.get('UAGENTS'), settings.get('HEADERS')),meta=self.meta)
 
     def parse_product(self, response, isProduct = False):
         """
             This method is to extract data from product page.
         """
-
-        # check if the recaptcha exists.
+        self.count = self.count + 1
+        print('######################## Check If The Recaptcha Exists ########################')
         if response.css('#captchacharacters').extract_first():
-            self.log("Captcha found ")
+            #self.log("Captcha found")
+            print('Captcha Found')
+        else:
+            print('Captcha Not Found')
 
-        # initialize the item
+        print('######################## Initialize The Item Model ########################')
         Item = MarketItem()
 
-        # Asin
+        print('######################## Retrieve Asin From Meta ########################')
         Item["productLocalId"] = response.meta['asin']
+        print('Product Asin Received By Scrapy Meta is:', response.meta['asin'])
 
-        # brand
-        tempBrand = getElement(selectors["brand"], response).extract_first(default="NA")
+        print('######################## Detect Brand Name ########################')
+        productBrand = getElement(selectors["brand"], response).extract_first(default="NA")
 
-        if tempBrand is not None and "Visit the" in tempBrand:
-            tempBrand = re.search(r'Visit the (.*?) Store', tempBrand).group(1)
-        elif tempBrand is not None and "Brand:" in tempBrand:
-            tempBrand = tempBrand.replace('Brand: ', "")
+        if productBrand is not None and "Visit the" in productBrand:
+            productBrand = re.search(r'Visit the (.*?) Store', productBrand).group(1)
+        elif productBrand is not None and "Brand:" in productBrand:
+            productBrand = productBrand.replace('Brand: ', "")
 
-        Item["productBrand"] = tempBrand
+        Item["productBrand"] = productBrand
+        print('Brand Name Is:',productBrand)
 
-        # description
+        print('######################## Extract Product Description ########################')
         productDescription = getElement(selectors["description"], response).getall()
 
         # get rid of blank rows.
@@ -139,32 +182,38 @@ class AmazonSpider(scrapy.Spider):
         while '\n' in productDescription:
             productDescription.remove('\n')
 
-        Item["productDescription"] = "\n".join(productDescription)
+        Item["productDescription"] = "\n".join(productDescription).strip()
+        print('Product Description is:', "\n".join(productDescription).strip()[0: 50])
 
-        # sellername
-        Item["sellerName"] = "NA"
-        # Item["sellerName"] = getElement(selectors["sellerName"], response).extract_first(default="NA")
+        print('######################## Extract Seller Name ########################')
+        sellerName = getElement(selectors["sellerName"], response).extract_first(default="NA").strip()
+        Item["sellerName"] = sellerName
+        print('Seller Name is:', sellerName)
 
-        # imagelinks
+        print('######################## Extract Images Links ########################')
         ScriptText = getElement(selectors["imageLink"], response).extract_first(default="NA")
 
-        tempList = []
+        imgList = []
         temp = re.findall(r'"large":"[^"]*"', ScriptText)
 
-        for row in temp:
-            row = row.replace('"large":"', "")
-            row = row.rstrip('"')
-            tempList.append(row)
+        for temp_variant in temp:
+            temp_variant = temp_variant.replace('"large":"', "")
+            temp_variant = temp_variant.rstrip('"')
+            imgList.append(temp_variant)
 
-        Item["imageLink"] = tempList
+        Item["imageLink"] = imgList
+        print('Product Has:',len(imgList),'Images')
 
-        # productLink
+        print('######################## Extract Product Link ########################')
         Item["productLink"] = response.url
+        print('Product Link is:', response.url)
 
-        # productTitle
-        Item["productTitle"] = getElement(selectors["productTitle"], response).extract_first(default="NA").strip()
+        print('######################## Extract Product Title ########################')
+        productTitle = getElement(selectors["productTitle"], response).extract_first(default="NA").strip()
+        Item["productTitle"] = productTitle
+        print('Product Title is:', productTitle)
 
-        # StockStatus and StockCount: out of stock 0, in stock 1, low stock 2
+        print('######################## StockStatus and StockCount: out of stock 0, in stock 1, low stock 2 ########################')
         stockStatusDesc = getElement(selectors["stockStatusDesc"], response).extract_first(default="NA")
         stockStatusCode = 1
         stockCount = 0
@@ -180,11 +229,13 @@ class AmazonSpider(scrapy.Spider):
 
         Item["stockStatus"] = {
             "stockStatus": int(stockStatusCode),
-            "stockCount": 0
-            # "stockCount": int(stockCount)
+            "stockCount": int(stockCount)
         }
 
-        # userRating
+        print('Stock Status is:', stockStatusCode)
+        print('Stock Count is:', stockCount)
+
+        print('######################## Detect User Rating ########################')
         userRatingCount = getElement(selectors["userRatingCount"], response).extract_first()
 
         if userRatingCount is not None:
@@ -205,33 +256,109 @@ class AmazonSpider(scrapy.Spider):
             "ratingCount": int(userRatingCount)
         }
 
-        # price
-        Item["price"] = getElement(selectors["price"], response).extract_first(default="NA")
-        Item["oldPrice"] = getElement(selectors["oldPrice"], response).extract_first(default="NA")
-        discountTypeList = getElement(selectors["discountType"], response).getall()
-        
-        if Item["price"] != "NA" and Item["oldPrice"] != "NA":
+        print('User Rating Stars:', userRatingStars)
+        print('User Rating Count is:', userRatingCount)
 
-            if len(discountTypeList) > 1:
-                discountType = discountTypeList[1]
+        print('######################## Detect Free Delivery ########################')
+        freeDelivery = getElement(selectors["freeDelivery"], response).extract_first(default="NA").strip()
+        if 'FREE delivery' in freeDelivery:
+            Item["shippingFee"] = freeDelivery
+            print('Product Eligible For Free Delivery')
+        else:
+            Item["shippingFee"] = "NA"
+            print("Delivery Details Not Detected")
+
+        print('######################## Detect Price Details ########################')
+        priceDetails = getElement(selectors["priceDetails"], response).extract_first(default="NA")
+        if priceDetails != "NA":
+            if priceDetails.startswith('<span'):
+                print(priceDetails)
+                if re.search(r'.+\(.+\$[0-9]+\.*[0-9]*.+\s+/\s+[a-zA-Z0-9.]+\).+', priceDetails).group(0):
+                    print('String Matched RegEx')
+                    startPart = priceDetails[priceDetails.find('('):priceDetails.find('(') + 1]
+                    middlePart = priceDetails[priceDetails.find('$'): priceDetails.find('</span>', priceDetails.find('$'))]
+                    # endPart = priceDetails[priceDetails.find(' / Count)'):priceDetails.find('</span>', priceDetails.find(' / Count)'))]
+                    endPart = priceDetails[priceDetails.find('Count'):priceDetails.find('</span>', priceDetails.find('Count'))]
+                    # priceDetails = startPart+middlePart+endPart
+                    priceDetails = {
+                        'price': middlePart,
+                        'unit': endPart
+                    }
+                    Item["priceDetails"] = priceDetails
+                    print('Product Price Details is:', priceDetails)
+            elif re.search(r'\(\$[0-9]+\.*[0-9]*.*/.*[A-Za-z0-9.]+\)', priceDetails):
+                priceDetails = re.search(r'\(\$[0-9]+\.*[0-9]*.*/.*[A-Za-z0-9.]+\)', priceDetails).group(0)
+                if '($' in priceDetails:
+                    Item["priceDetails"] = priceDetails
+                    print('Product Price Details is:', priceDetails)
+            else:
+                Item["priceDetails"] = "NA"
+        else:
+            Item["priceDetails"] = "NA"
+
+        print('######################## Start Price Processing Including Discount And Coupon ########################')
+        productPrice = getElement(selectors["price"], response).extract_first(default="NA")
+        Item["price"] = productPrice
+        print('Product Price Is:', productPrice)
+
+        productOldPrice = getElement(selectors["oldPrice"], response).extract_first(default="NA")
+        Item["oldPrice"] = productOldPrice
+        print('Product Old Price Is:', productOldPrice)
+
+        discountTypeList = getElement(selectors["discountType"], response).extract_first(default="NA")
+        print('Product Discount Value is:', discountTypeList)
+
+        ######################## Detect Coupon Discount ########################
+        couponDiscount = getElement(selectors["couponBadge"], response).extract_first(default="NA").strip()
+        couponValue = getElement(selectors["couponValue"], response).extract_first(default="NA").strip()
+        discountType = "NA"
+
+        if Item["price"] != "NA" and Item["oldPrice"] != "NA":
+            print("in this case product has discount without coupon")
+            productPriceType = "Discounted"
+            if '%' in discountTypeList:
+                discountType = "Percent"
+                print('Product Price Discount Type is: Percent')
             else:
                 discountType = "Fixed"
+                print('Product Price Discount Type is: Fixed')
+
+        elif Item["price"] != "NA" and 'Coupon' in couponDiscount:
+            print("in this case product has no any discount but coupon")
+            productPriceType = "Coupon"
+            if '%' in couponValue:
+                discountType = "Percent"
+                print('Product Eligible For', couponValue, 'Discount')
+            elif '$' in couponValue:
+                discountType = "Fixed"
+                print('Product Eligible For', couponValue, 'Discount')
+            extractNumberFromCouponValueText = re.search(r'[0-9]+\.*[0-9]*', couponValue).group(0)
+            # extractNumberFromCouponValueText = ''.join(filter(lambda i: i.isdecimal(), couponValue))
+            couponValue = int(extractNumberFromCouponValueText)
+            print('couponValue:', couponValue)
+
         else:
+            print("in this case product has no any discount or coupon")
+            productPriceType = "Regular"
             discountType = "NA"
-        if '%' in discountType:
-            discountType = "Percent"
-        
+            couponValue = "NA"
+            print('Product Price Discount Type is: NA')
+
+        Item["productPriceType"] = productPriceType
+        Item["couponValue"] = couponValue
         Item["discountType"] = discountType
 
-        # productProcessTime
-        Item["productProcessTime"] = round(response.meta.get('download_latency'), 2)
-        # print(download_latency)
+        print('######################## Calculate Product Processing Time ########################')
+        productProcessingTime = round(response.meta.get('download_latency'), 2)
+        Item["productProcessTime"] = productProcessingTime
+        print('Product Processing Time:', productProcessingTime)
 
-        # productProcessSize
-        Item["productProcessSize"] = round(len(response.body) / 1024, 2)
+        print('######################## Calculate Product Process Size ########################')
+        productProcessedSize = round(len(response.body) / 1024, 2)
+        Item["productProcessSize"] = productProcessedSize
+        print('Product Processed Size is:', productProcessedSize)
 
-        # other variants
-
+        print('######################## Start Variants Processing ########################')
         if isProduct:
             variantId = str(uuid.uuid5(uuid.NAMESPACE_DNS, response.meta['asin']))
         else:
@@ -244,88 +371,102 @@ class AmazonSpider(scrapy.Spider):
         variants = []
         temp_variants = re.findall(r'"asin":"[^"]*"', variantText)
 
-        for row in temp_variants:
-            row = row.replace('"asin":"', "")
-            row = row.rstrip('"')
-            variants.append(row)
+        for temp_variant in temp_variants:
+            temp_variant = temp_variant.replace('"asin":"', "")
+            temp_variant = temp_variant.rstrip('"')
+            variants.append(temp_variant)
 
-        variantGNames = getElement(selectors['variantGNames'], response).getall()
-        variantGNames = [re.sub(r'[^A-Za-z0-9]+','', variantGName) for variantGName in variantGNames ]
-        print(variantGNames)
-        variantName = {}
+        variantGroupsNames = getElement(selectors['variantGroupsNames'], response).getall()
+        variantGroupsNames = [re.sub(r'[^A-Za-z0-9]+','', variantGroupName) for variantGroupName in variantGroupsNames ]
+        while '' in variantGroupsNames:
+            variantGroupsNames.remove('')
+        print('Variant Groups Are: ', variantGroupsNames)
+        
+        variantDetails = {}
 
-        for variantGName in variantGNames:
+        Item['priceUnit'] = getElement(selectors['priceUnit'],response).get(default = "NA")
+        print('Price Unit is: ', Item['priceUnit'])
 
-            variantNameSelectors = [
-                    f'//div[contains(@class,"a-row") and label[@class="a-form-label" and contains(.,"{variantGName}")]]/span[@class="selection"]/text()',
-                    f'//div[contains(@class,"a-row") and label[@class="a-form-label" and contains(.,"{variantGName}")]]/following-sibling::span//span[@class="a-dropdown-prompt"]/text()'
+        # print(getElement(['$x('//a[contains(@aria-label,"Selected")]/@aria-label]))
+        tempVariantDesc = getElement(selectors['variantDesc'],response).getall()
 
-            ]
-            variantName[variantGName] = getElement(variantNameSelectors, response).get()
-            if variantName[variantGName]:
-                variantName[variantGName] = variantName[variantGName].strip()
-        print(variantName)
+        if len(variantGroupsNames) > 0:
+            print('This Product Has Variant Group')
+            for variantGroupName in variantGroupsNames:
+                print('Variant Group Name Is:', variantGroupName)
+
+                variantNameSelectors = [
+                        f'//div[contains(@class,"a-row") and label[@class="a-form-label" and contains(text(),"{variantGroupName}")]]/span[@class="selection"]/text()',
+                        f'//div[contains(@class,"a-row") and label[@class="a-form-label" and contains(text(),"{variantGroupName}")]]/following-sibling::span//span[@class="a-dropdown-prompt"]/text()',
+                        f'//div[contains(@class,"a-section") and span[contains(@class,"a-color-secondary") and contains(text(),"{variantGroupName}")]]/following-sibling::span[contains(@id,"inline-twister-expanded-dimension")]/text()'
+                ]
+                variantName = getElement(variantNameSelectors, response).get(default="NA").strip()
+                variantName = variantName.replace('\n','')
+                variantName = variantName.replace('\r','')
+                print('Variant Name Is:', variantName)
+
+                if variantName != "NA" and variantName != "":
+                    variantDetails[variantGroupName] = variantName
+                    print('Variant Details Contains:', variantDetails)
+                else:
+                    for variantDesc in tempVariantDesc:
+                        print('Variant Extracting From Description...')
+                        result = re.search(r'Selected (.*) is (.*)\. Tap to collapse\.',variantDesc)
+                        print('Variant Description Is:', result)
+                        try:
+                            variantGroupName = result.group(1)
+                            print('Variant Group Name is: ', variantGroupName)
+                            variantName = result.group(2)
+                            print('Variant Name Is:', variantName)
+                            variantDetails[variantGroupName] =variantName
+                            print('Variant Details Contains:', variantDetails)
+                        except:
+                            pass
+                    break
+
+        else:
+            for variantDesc in tempVariantDesc:
+                print('Variant Extracting From Description...')
+                result = re.search(r'Selected (.*) is (.*)\. Tap to collapse\.',variantDesc)
+                print('Variant Description Is:', result)
+                try:
+                    variantGroupName = result.group(1)
+                    print('Variant Group Name is:', variantGroupName)
+                    variantName = result.group(2)
+                    print('Variant Name Is:', variantName)
+                    variantDetails[variantGroupName] =variantName
+                    print('Variant Details Contains:', variantDetails)
+                except:
+                    pass
+
+
         variantPrices = getElement(selectors["variantPrice"], response).getall()
 
-        if len(variantPrices) <2 and len(variantGroups) < 2:
-            variantId = "NA"
-
-        #variantId
-        try:
-            if response.meta["variantId"] != "NA":
-                Item["variant"] = {
-                    "variantId": response.meta["variantId"],
-                    "variantName": variantName
-                }
-        except Exception as inst:
-            if len(variantPrices) > 1:
-                variantName = response.xpath('//li[@data-defaultasin="'+Item['productLocalId']+'"]' + selectors["variantName"][0]).get()
-                Item["variant"] = {
-                    "variantId": variantId,
-                    "variantName": variantName
-                }
-            if len(variantGroups) > 1:
-                # variantName = "Many Variants"
-                Item["variant"] = {
-                    "variantId": variantId,
-                    "variantName": variantName
-                }
-        # Item['variant'] = {
-        #     'variantId': variantId,
-        #     "variantName": variantName
-        # }
-        for variant in variants:
-            # r = re.search(r'\/[A-Z0-9]{10}\/',temp_variant)
-            # if r is not None:
-            #     variant = r.group(0)
-            #     variant = variant[1:-1]
-            # else:
-            #     r = re.search(r',[A-Z0-9]{10}',temp_variant)
-            #     if r is not None:
-            #         variant = r.group(0)
-            #         variant = variant[1:]
-            #     else:
-            #         variant = ""
-
-            if variant != "" and variant != response.meta['asin']:
-                if variant not in self.productLists:
-                    self.productLists.append(variant)
-                    customMeta = copy.deepcopy(self.meta)
-                    customMeta['asin'] = variant
-
-                    if len(variantGroups) > 1:
-                        variantName = "Many Variants"
-                    else:
-                        variantName = response.xpath('//li[@data-defaultasin="'+variant+'"]' + selectors["variantName"][0]).get(default = "NA")
-                        if variantName == "NA":
-                            variantName = response.xpath('//option[contains(@value,"'+variant+'")]' + selectors["variantName"][1]).get(default = "NA")
-                    
-                    customMeta["variantId"] = variantId
-                    customMeta["variantName"] = variantName
-                    url = re.sub(r'\/[0-9A-Z]{10}','/'+variant, response.url)
-
-                    yield scrapy.Request(url=cleanUrl(url), callback=self.parse_product,
-                                         headers=getRandomUAgents(settings.get('UAGENTS'), settings.get('HEADERS')),
-                                         meta=customMeta)
+        if variantDetails != {} and variantId !="NA":
+            Item['variant'] = {
+                'variantId': variantId,
+                "variantDetails": variantDetails
+            }
+        print('==== Finished Product Data Extracting ====')
 
         yield Item
+
+        if isProduct:
+            for variant in variants:
+                if variant != "" and variant != response.meta['asin']:
+                    print('Product Variant ASIN is: '+variant+' Which Need To Process')
+                    if self.is_product_exist(variant) is False:
+                        print('It is unique product')
+                        # self.productLists.append(variant)
+                        customMeta = copy.deepcopy(self.meta)
+                        customMeta['asin'] = variant
+
+                        customMeta["variantId"] = variantId
+                        customMeta["variantDetails"] = variantDetails
+                        url = re.sub(r'/[0-9A-Z]{10}','/'+variant, response.url)
+
+                        yield scrapy.Request(url=cleanUrl(url), callback=self.parse_product,
+                                             headers=getRandomUAgents(settings.get('UAGENTS'), settings.get('HEADERS')),
+                                             meta=customMeta)
+
+

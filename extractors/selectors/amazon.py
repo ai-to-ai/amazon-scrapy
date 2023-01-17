@@ -25,17 +25,49 @@ selectors = {
         '//span[contains(@class, "priceToPay")]/span[1]/text()',
         '//*[@id="snsDetailPagePrice"]/span[@id="sns-base-price"]/text()',
         '//*[@id="priceblock_ourprice"]/text()',
-        '//*[@id="corePrice_desktop"]/div/table/tr[2]/td[2]/span[1]/span[1]/text()'
+        '//*[@id="corePrice_desktop"]/div/table/tr[2]/td[2]/span[1]/span[1]/text()',
+        '//*[@id="corePrice_feature_div"]/div/span/span[1]/text()',
+        '//*[@id="corePrice_feature_div"]/div/span/span[2]/text()',
+        '//*[@id="corePrice_feature_div"]/div/span/text()',
+        '//*[@id="priceblock_dealprice"]/text()'
     ],
     "oldPrice": [
+        '//*[@id="price"]/table/tbody/tr[1]/td[2]/span[1]/text()',
+        '//*[@id="corePrice_desktop"]/div/table/tbody/tr[1]/td[2]/span[1]/text()',
+        '//*[@id="corePriceDisplay_desktop_feature_div"]/div[2]/span/span[1]/span/span[1]/text()',
         '//div[@id="centerCol"]/div[@id="apex_desktop"]/div/div/div[@id="corePrice_desktop"]/div/table/tr/td/span[contains(@class,"a-price") and @data-a-strike="true"]/span[1]/text()',
         '//*[@id="corePrice_desktop"]/div/table/tr[1]/td[2]/span[@data-a-strike="true"]/span[1]/text()'
-
     ],
     "discountType":[
         '//*[@id="savingsPercentage"]/text()',
+        '//*[@id="corePrice_desktop"]/div/table/tbody/tr[3]/td[2]/span[1]/text()',
         '//*[@id="corePrice_desktop"]/div/table/tr[3]/td[2]/span[1]/text()',
-
+        '//*[@id="dealprice_savings"]/td[2]/text()',
+        '//*//*[@id="corePriceDisplay_desktop_feature_div"]/div[1]/span[1]/text()',
+        '//*[@id="regularprice_savings"]/td[2]/text()'
+    ],
+    "freeDelivery":[
+        '//*[@id="mir-layout-DELIVERY_BLOCK-slot-PRIMARY_DELIVERY_MESSAGE_LARGE"]/span/a/text()',
+        '//*[@id="mir-layout-DELIVERY_BLOCK-slot-PRIMARY_DELIVERY_MESSAGE_LARGE"]/span/text()[1]',
+        '//*[@id="fast-track-message-abbreviate"]/div/text()'
+    ],
+    "couponBadge": [
+        '//*[@class="a-icon a-icon-addon newCouponBadge"]/text()'
+    ],
+    "couponValue": [
+        '//*[@id="promoPriceBlockMessage_feature_div"]/span/div/span/label/text()',
+        '//*[@id="_newAccordionRow"]/span/div[1]/span/label/text()',
+        '//*[@id="promoPriceBlockMessage_feature_div"]/span/div[2]/span/label/text()'
+    ],
+    "priceDetails": [
+        '//*[@id="_price"]/span[@class="price_slot_ppu twister-plus-inline-twister-ppu a-size-micro"]/text()',
+        '//*[@id="sns-base-price"]/span/text()',
+        '//*[@id="corePriceDisplay_desktop_feature_div"]/div[1]/span[3]',
+        '//*[@id="corePrice_feature_div"]/div/span[2]',
+        '//*[@id="_price"]/span[2]/text()'
+    ],
+    "priceUnit": [
+        '//*[contains(@class,pricePerUnit)]/text()'
     ],
     "variants": ["//script[contains(., 'ImageBlockBTF')]/text()"],
     "variantName":[
@@ -48,8 +80,13 @@ selectors = {
     'variantGroups':[
         '//form[@id="twister"]/div[contains(@id,"variation_")]'
     ],
-    'variantGNames':[
-        '//*[@class="a-form-label"]/text()'
+    'variantGroupsNames':[
+        '//*[@class="a-form-label"]/text()',
+        '//span[contains(text(),"Size:" and @class="a-size-base a-color-secondary")]/text()',
+        '//*[contains(@id,"inline-twister-dim")]/div/span[1]/text()'
+    ],
+    'variantDesc':[
+        '//a[contains(@aria-label,"Selected")]/@aria-label'
     ]
 }
 
