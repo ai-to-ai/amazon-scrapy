@@ -4,6 +4,6 @@ import dotenv
 
 dotenv.load_dotenv()
 
-mongodb_user = ""
-mongodb_password = ""
-mongodb_cluster = ""
+mongodb_user = "david"
+mongodb_password = "YAFV68dBmBQhoNJs"
+mongodb_cluster = "uhrfxiy"

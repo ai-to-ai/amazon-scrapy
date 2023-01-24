@@ -1,5 +1,4 @@
 import pymongo
-
 import settings
 
 MONGODB_USER = settings.mongodb_user
